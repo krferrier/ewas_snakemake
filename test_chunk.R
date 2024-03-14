@@ -7,7 +7,7 @@ parser <- argparse::ArgumentParser(description = "Chunk methylation data")
 parser$add_argument("--chunk-size", type = "integer", nargs="?", const = 1000, help = "number of CpGs per chunk")
 args <- parser$parse_args()
 
-# Convert the stratify argument to character vector
+# parse the stratify argument to integer
 chunk_size <- args$chunk_size
 chunk_size 
 
