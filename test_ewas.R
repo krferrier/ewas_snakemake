@@ -1,7 +1,4 @@
-# Script for performing Epigenome-wide association analysis that takes in command line arguments
-# TO DO:
-#   > Add argument for which phenotype to perform the ewas on
-#   > Add argument for what type of file to output results as
+# Script for performing Epigenome-Wide association analysis that takes in command line arguments
 
 # Import libraries
 library(R.utils)
@@ -24,62 +21,96 @@ source("chunk.R")
 #                                   DEFINE AND PARSE COMMAND LINE ARGUMENTS                                                    # 
 ################################################################################################################################
 # Define command line arguments
-parser <- argparse::ArgumentParser(description = "Script for running EWAS")
-parser$add_argument("--pheno", required=TRUE, help = "Path to phenotype data [samples, phenotypes] in CSV or CSV.GZ format with the first column being sample identifiers.")
-parser$add_argument("--methyl", required=TRUE, help = "Path to methylation data [samples, CpGs] in CSV or CSV.GZ format with the first column being sample identifiers.")
-parser$add_argument("--stratify", type = "character", nargs="*", help = "Variables to stratify")
-parser$add_argument("--chunk-size", type = "integer", nargs="?", const = 1000, help = "number of CpGs per chunk")
+parser <- argparse::ArgumentParser(description="Script for running EWAS")
+parser$add_argument("--pheno",
+                    required=TRUE,
+                    help="Path or URL to phenotype data [samples, phenotypes] with the first column being sample identifiers. \n
+                    Acceptable formates include CSV, Jay, XLSX, and plain text. \n
+                    Data can also be inside an archive such as .tar, .gz, .zip, .gz2, or .tgz .")
+parser$add_argument("--methyl",
+                    required=TRUE, 
+                    help="Path or URL to methylation data [samples, CpGs] with the first column being sample identifiers. \n
+                    Acceptable formates include CSV, Jay, XLSX, and plain text. \n
+                    Data can also be inside an archive such as .tar, .gz, .zip, .gz2, or .tgz .")
+parser$add_argument("--assoc", 
+                    required=TRUE,
+                    type="character", 
+                    nargs=1, 
+                    help="Variable to perform association with.")
+parser$add_argument("--stratify", 
+                    type="character", 
+                    nargs="*", 
+                    help="Variable(s) to stratify.")
+parser$add_argument("--chunk-size", 
+                    type="integer", 
+                    nargs="?", 
+                    const=1000, 
+                    default=1000, 
+                    help="number of CpGs per chunk.")
 parser$add_argument('--processing-type', '-pt',
-                    type = "character",
+                    type="character",
                     nargs="?",
                     const="sequential",
                     default="sequential",
-                    choices = c("sequential", "multisession", "multicore", "cluster"),
+                    choices=c("sequential", "multisession", "multicore", "cluster"),
                     help="Parallelization type: sequential (default), multisession, multicore, or cluster")
-parser$add_argument('--workers', type = "integer", nargs="?", const=1, default=1, help="Number of processes to run in parallel")
-parser$add_argument('--out-dir', type = "character", required=TRUE, help="Path to output directory")
+parser$add_argument('--workers', 
+                    type="integer", 
+                    nargs="?", 
+                    const=1, 
+                    default=1, 
+                    help="Number of processes to run in parallel")
+parser$add_argument('--out-dir', 
+                    type="character",
+                    nargs="?",                    
+                    const="~/", 
+                    default="~/",  
+                    help="Path to output directory")
+parser$add_argument('--out-type', 
+                    type="character",
+                    choices=c(".csv", ".csv.gz"), 
+                    nargs="?",                    
+                    const=".csv",
+                    default=".csv",  
+                    help="Output file type: CSV or CSV.GZ")                    
 
 # parse arguments
 args <- parser$parse_args()
 pheno <- args$pheno
 mvals <- args$methyl
+assoc_var <- args$assoc
 stratify_vars <- args$stratify
 chunk_size <- args$chunk_size
 pt <- args$processing_type
 n_workers <- args$workers
 out_dir <- args$out_dir
-print(out_dir)
-# ################################################################################################################################
-# #                                   CHECK THAT INPUT FILES ARE CSV OR CSV.GZ                                                   # 
-# ################################################################################################################################
-# Function to check for the file extensions '.csv' and '.csv.gz'
-check_input <- function(f){
-  if(endsWith(f, c(".csv")) | endsWith(f, c(".csv.gz"))){
-    return(TRUE)
-  }else{
-    return(FALSE)
-  }
-}
-
-# Throw an error if the phenotype data is not the correct format
-if(check_input(pheno) == FALSE){
-  stop("Phenotype data is not in CSV or CSV.GZ format. \n")
-}
-# Throw an error if the methylation data is not the correct format
-if(check_input(mvals) == FALSE){
-  stop("Methylation data is not in CSV or CSV.GZ format. \n")
-}
+out_type <- args$out_type
 
 ####################################################################################################
 #                                   READ IN DATA                                                   #
 ####################################################################################################
 
 # Read in phenotype data
-pheno <- fread(pheno) %>% column_to_rownames(var=colnames(.)[1])
+pheno <- fread(pheno) %>% 
+  column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 
 # Read in methylation data
-mvals <- fread(mvals) %>% column_to_rownames(var=colnames(.)[1])
+mvals <- fread(mvals) %>% 
+column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 
+
+####################################################################################################
+#                                     CHECK DATA                                                   #
+####################################################################################################
+
+# Check that the association variable exists in the phenotype data
+missing_vars <- setdiff(assoc_var, colnames(pheno))
+if (length(missing_vars) > 0) {
+  stop(paste("The following association variable(s) do not exist in the phenotype data:", paste(missing_vars, collapse = ", ")))
+  # If the variable does exist in the phenotype data, set the variable as the first column
+}else{
+  pheno <- pheno %>% relocate(all_of(assoc_var))
+}
 
 ####################################################################################################
 #                                   STRATIFY DATA                                                  #
@@ -91,6 +122,7 @@ subset.key <- make_subset.key(pheno, stratify_vars)
 # Stratify the phenotype and methylation data with the subset.key. If no stratification variables were given, the data is not stratified. 
 pheno <- stratify.pheno(pheno, stratify_vars)
 mvals <- stratify.mvals(mvals)
+
 
 ####################################################################################################
 #                                      CHUNK DATA                                                  #
@@ -112,13 +144,13 @@ if(pt=="sequential"){
   cat("Processing run sequentially. \n")
 }else{
   plan(strategy = pt, workers = n.workers)
-  cat("Asynchronous parallel processing using", pt, "with ", n.workers, " worker(s). \n")
+  cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
 }
 
 # Create a list for the results
 results <- list()
 
-# Loop through each strata
+# Loop through each strata. If data was not stratified, the loop will run once with all samples.
 for(j in names(subset.key)){
   # Loop through each strata
   cat("Starting Subset: ", j, "\n")
@@ -137,11 +169,10 @@ for(j in names(subset.key)){
       .GlobalEnv$m.chunk <- m.chunk
       .GlobalEnv$p.sub <- p.sub
       model.base <- paste(colnames(p.sub), collapse = " + ")
-      #string.formula <- paste0(i, " ~ ", model.base, " + n.haps")
       string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
       fit <- lm(formula = string.formula, data = p.sub) %>%
         broom::tidy(conf.int = T) %>%
-        dplyr::filter(term %in% c('BMI')) %>%
+        dplyr::filter(term %in% c(assoc_var)) %>%
         dplyr::mutate(cpgid = i)
       fit
     }
@@ -153,11 +184,10 @@ for(j in names(subset.key)){
   results[[j]] <- res.chunks
   toc()
 }
-save(results, file="test_ewas.RData")
 
 # Export results by strata (if analysis was stratified)
 for (i in names(subset.key)){
   sub.results <- results[[i]]
-  file.name <- paste0(out_dir, i, "_ewas_results.csv")
+  file.name <- paste0(out_dir, i, "_", assoc_var, "_ewas_results", out_type)
   fwrite(sub.results, file = file.name)
 }
