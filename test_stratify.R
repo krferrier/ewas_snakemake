@@ -3,6 +3,7 @@
 library(argparse)
 library(dplyr)
 library(tibble)
+source("stratify.R")
 
 # Define command line arguments
 parser <- argparse::ArgumentParser(description = "Stratify data")
