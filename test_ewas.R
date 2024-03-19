@@ -1,4 +1,7 @@
 # Script for performing Epigenome-wide association analysis that takes in command line arguments
+# TO DO:
+#   > Add argument for which phenotype to perform the ewas on
+#   > Add argument for what type of file to output results as
 
 # Import libraries
 library(R.utils)
@@ -34,6 +37,7 @@ parser$add_argument('--processing-type', '-pt',
                     choices = c("sequential", "multisession", "multicore", "cluster"),
                     help="Parallelization type: sequential (default), multisession, multicore, or cluster")
 parser$add_argument('--workers', type = "integer", nargs="?", const=1, default=1, help="Number of processes to run in parallel")
+parser$add_argument('--out-dir', type = "character", required=TRUE, help="Path to output directory")
 
 # parse arguments
 args <- parser$parse_args()
@@ -43,10 +47,11 @@ stratify_vars <- args$stratify
 chunk_size <- args$chunk_size
 pt <- args$processing_type
 n_workers <- args$workers
-
-################################################################################################################################
-#                                   CHECK THAT INPUT FILES ARE CSV OR CSV.GZ                                                   # 
-################################################################################################################################
+out_dir <- args$out_dir
+print(out_dir)
+# ################################################################################################################################
+# #                                   CHECK THAT INPUT FILES ARE CSV OR CSV.GZ                                                   # 
+# ################################################################################################################################
 # Function to check for the file extensions '.csv' and '.csv.gz'
 check_input <- function(f){
   if(endsWith(f, c(".csv")) | endsWith(f, c(".csv.gz"))){
@@ -149,3 +154,10 @@ for(j in names(subset.key)){
   toc()
 }
 save(results, file="test_ewas.RData")
+
+# Export results by strata (if analysis was stratified)
+for (i in names(subset.key)){
+  sub.results <- results[[i]]
+  file.name <- paste0(out_dir, i, "_ewas_results.csv")
+  fwrite(sub.results, file = file.name)
+}
