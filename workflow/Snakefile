@@ -1,30 +1,41 @@
 import pandas as pd
 from wildcards import generate_observed_combinations
 
-# def generate_observed_combinations(df, stratify_cols):
-#     if len(stratify_cols) > 0:
-#         # Convert integer columns to strings
-#         df[stratify_cols] = df[stratify_cols].astype(str)
-        
-#         # Group the DataFrame by 'stratify_cols' and aggregate the values
-#         observed_combinations = df.groupby(stratify_cols).size().reset_index()
-        
-#         # Join the values of each combination with "_"
-#         observed_combinations['combination'] = observed_combinations[stratify_cols].apply('_'.join, axis=1)
-        
-#         return observed_combinations['combination'].tolist()
-#     else:
-#         # If no stratify_cols provided, return a list with only "all"
-#         return ['all']
+configfile: "config.yml"
 
-GROUPS = generate_observed_combinations(df=pd.read_csv("pheno.csv"), stratify_cols=["sex", "re"])
+GROUPS = generate_observed_combinations(df=pd.read_csv(config["pheno"]), stratify_cols=config["stratify_variables"])
 
 rule all:
     input:
         expand("{group}_EWAS.csv", group=GROUPS)
 
-rule generate_csv:
-    output:
-        "{group}_EWAS.csv"
+rule run_ewas:
+    input:
+        script = "/scripts/test_ewas.R",
+        pheno_file = config["pheno"],
+        methyl_file = config["mvals"]
+    params:
+        assoc_var = config["association_variable"],
+        strat_vars = ' '.join(config["stratify_variables"]),
+        cs = config["chunk_size"],
+        pt = config["processing_type"],
+        n_workers = config["workers"],
+        o_dir = config["out_directory"],
+        o_type = config["out_type"]
+    output: 
+        config["out_directory"] + "{subset}_{params.assoc_var}_ewas_results.{params.o_type}"
+    conda:
+        "run_ewas.yml"
     shell:
-        "touch {output}"
+        f"""
+        Rscript {{script}} \
+        --pheno {{input.pheno_file}} \
+        --methyl {{input.methyl_file}} \
+        --assoc {{params.assoc_var}} \
+        --stratify {{params.strat_vars}} \
+        --chunk-size {{params.cs}} \
+        --processing-type {{params.pt}} \
+        --workers {{params.n_workers}} \
+        --out-dir {{params.o_dir}} \
+        --out-type {{params.o_type}} \
+        """
