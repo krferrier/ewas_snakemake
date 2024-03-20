@@ -1,0 +1,9 @@
+mvals: "data/mvals.csv.gz"
+pheno: "data/pheno.csv"
+association_variable: "BMI"
+stratify_variables: ["sex", "re"]
+chunk_size: 100
+processing_type: "sequential"
+workers: 1
+out_directory: "~/"
+out_type: ".csv"
