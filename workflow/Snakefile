@@ -1,41 +1,47 @@
 import pandas as pd
 from wildcards import generate_observed_combinations
 
-configfile: "config.yml"
+configfile: "config.yaml"
 
-GROUPS = generate_observed_combinations(df=pd.read_csv(config["pheno"]), stratify_cols=config["stratify_variables"])
+GROUPS = generate_observed_combinations(df=pd.read_csv("data/pheno.csv"), stratify_cols=["sex"])
 
 rule all:
     input:
         expand("{group}_EWAS.csv", group=GROUPS)
 
-rule run_ewas:
-    input:
-        script = "/scripts/test_ewas.R",
-        pheno_file = config["pheno"],
-        methyl_file = config["mvals"]
-    params:
-        assoc_var = config["association_variable"],
-        strat_vars = ' '.join(config["stratify_variables"]),
-        cs = config["chunk_size"],
-        pt = config["processing_type"],
-        n_workers = config["workers"],
-        o_dir = config["out_directory"],
-        o_type = config["out_type"]
-    output: 
-        config["out_directory"] + "{subset}_{params.assoc_var}_ewas_results.{params.o_type}"
-    conda:
-        "run_ewas.yml"
+rule test:
+    output:
+        "{groups}.csv"
     shell:
-        f"""
-        Rscript {{script}} \
-        --pheno {{input.pheno_file}} \
-        --methyl {{input.methyl_file}} \
-        --assoc {{params.assoc_var}} \
-        --stratify {{params.strat_vars}} \
-        --chunk-size {{params.cs}} \
-        --processing-type {{params.pt}} \
-        --workers {{params.n_workers}} \
-        --out-dir {{params.o_dir}} \
-        --out-type {{params.o_type}} \
-        """
+        "touch {output}"
+
+# rule run_ewas:
+#     input:
+#         script = "/scripts/test_ewas.R",
+#         pheno_file = config["pheno"],
+#         methyl_file = config["mvals"]
+#     params:
+#         assoc_var = config["association_variable"],
+#         strat_vars = ' '.join(config["stratify_variables"]),
+#         cs = config["chunk_size"],
+#         pt = config["processing_type"],
+#         n_workers = config["workers"],
+#         o_dir = config["out_directory"],
+#         o_type = config["out_type"]
+#     output: 
+#         config["out_directory"] + "{subset}_{params.assoc_var}_ewas_results.{params.o_type}"
+#     conda:
+#         "run_ewas.yml"
+#     shell:
+#         f"""
+#         Rscript {{script}} \
+#         --pheno {{input.pheno_file}} \
+#         --methyl {{input.methyl_file}} \
+#         --assoc {{params.assoc_var}} \
+#         --stratify {{params.strat_vars}} \
+#         --chunk-size {{params.cs}} \
+#         --processing-type {{params.pt}} \
+#         --workers {{params.n_workers}} \
+#         --out-dir {{params.o_dir}} \
+#         --out-type {{params.o_type}} \
+#         """
