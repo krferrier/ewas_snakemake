@@ -1,9 +1,9 @@
-# mvals: "data/mvals.csv.gz"
+mvals: "data/mvals.csv.gz"
 pheno: "data/pheno.csv"
-# association_variable: "BMI"
-# stratify_variables: ["sex", "re"]
-# chunk_size: 100
-# processing_type: "sequential"
-# workers: 1
-# out_directory: "~/"
-# out_type: ".csv"
+association_variable: "BMI"
+stratify_variables: []
+chunk_size: 100
+processing_type: "multicore"
+workers: 2
+out_directory: "results/"
+out_type: ".csv"

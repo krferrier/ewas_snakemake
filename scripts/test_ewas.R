@@ -14,8 +14,8 @@ library(tibble)
 library(tictoc)
 
 # Source functions from outside scripts
-source("stratify.R")
-source("chunk.R")
+source("scripts/stratify.R")
+source("scripts/chunk.R")
 
 ################################################################################################################################
 #                                   DEFINE AND PARSE COMMAND LINE ARGUMENTS                                                    # 
