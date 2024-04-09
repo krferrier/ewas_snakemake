@@ -8,7 +8,7 @@
 #        RNGseed = rng.
 
 .bacon <- function(i, object, niter, nbins, trim, level, verbose, priors){
-  
+  set.seed(1234)
   ##TODO add some kind of trimming?
   tstats <- tstat(object)[,i]
   
@@ -89,7 +89,7 @@ bacon <- function(teststatistics=NULL, effectsizes=NULL, standarderrors=NULL,
   nset <- ncol(tstat(object))    
   ##run the Gibbs Sampler
   if(ncol(tstat(object)) > 1){
-    nworkers <- bpworkers(bpparam())/2
+    nworkers <- bpworkers(bpparam())
     if(nworkers <= 1) {
       if(nset > 1)
         message("Did you registered a biocparallel back-end?\n Continuing serial!")

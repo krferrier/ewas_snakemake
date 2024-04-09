@@ -8,6 +8,7 @@ library(data.table)
 library(bacon)
 
 source("Claw Lab/ewas_snakemake/scripts/bacon_rng_fix.R")
+source("Claw Lab/ewas_snakemake/scripts/bacon_init_fix.R")
 
 set.seed(12345)
 biases <- runif(6, -0.2, 0.2)
@@ -20,27 +21,53 @@ colnames(es) <- colnames(se) <- LETTERS[1:ncol(se)]
 rownames(es) <- rownames(se) <- 1:5000
 head(rownames(es))
 
-# run bacon 
-bc1 <- bacon(teststatistics = NULL,
-             effectsizes = es,
-             standarderrors = se,
-             verbose = T,
-             trim = 0.999,
-             rng = 432)
-# run bacon again on the same exact data
+# read in EWAS summary statistics
+ewas <- fread("Lange_Lab/Data/JHS/Methylation/bmi_ewas/jhs_f_bmi_ewas.csv")
+
+ewas <- ewas[, 1:6]
+ewas <- ewas %>% 
+        mutate(statistic2 = estimate/std.error,
+               test1 = ifelse(statistic == statistic2, T, F),
+               statistic3 = round(estimate, digits = 8)/round(std.error, digits = 8),
+               test2 = ifelse(statistic == statistic3, T, F))
+
+es2 <- as.matrix(data.frame("A" = ewas$estimate, "B" = ewas$estimate, "C" = ewas$estimate))
+se2 <- as.matrix(data.frame("A" = ewas$std.error, "B" = ewas$std.error, "C" = ewas$std.error))
+es3 <- as.matrix(data.frame("A1" = es[,1], "A2" = es[,1], "B1" = es[,2], "B2" = es[,2]))
+se3 <- as.matrix(data.frame("A1" = se[,1], "A2" = se[,1], "B1" = se[,2], "B2" = se[,2]))
+# Set seed for non-BiocParallel random number generating functions
+seed1 <- 1234
+set.seed(seed1)
+# Set seed for BiocParallel random number generating functions
+seed2 <- 4567
+
+# run bacon on t-statistics
+bc1 <- bacon(teststatistics = ewas$statistic,
+                            verbose = T,
+                            trim = 0.999,
+                            rng = seed2)
+# run bacon on effect-sizes and standard-errors
 bc2 <- bacon(teststatistics = NULL,
-             effectsizes = es,
-             standarderrors = se,
+             effectsizes = es3,
+             standarderrors = se3,
              verbose = T,
              trim = 0.999,
-             rng = 432)
+             rng = seed2)
+bc3 <- bacon(teststatistics = NULL,
+             effectsizes = es3,
+             standarderrors = se3,
+             verbose = T,
+             trim = 0.999,
+             rng = 237)
+estimates(bc2)
+estimates(bc3)
 # check if outputs are the same
 test.1 <- list(inflation(bc1), bias(bc1), pval(bc1))
 test.2 <- list(inflation(bc1), bias(bc2), pval(bc2))
 identical(test.1[[1]], test.2[[1]])
 identical(test.1[[2]], test.2[[2]])
 identical(test.1[[3]], test.2[[3]])
-
+identical(tstat(bc1), tstat(bc2))
 
 bacon_bmi_ewas <- list()
 set.seed(2974)
