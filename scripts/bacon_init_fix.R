@@ -28,17 +28,23 @@ setClass("Bacon",
 setMethod("initialize", "Bacon",
           function(.Object, teststatistics, effectsizes, standarderrors, 
                    niter, nburnin, priors, na.exclude) {
-            # Change the first conditional statement to also check if effectsize and standarderrors are NULL before running with only tstats
+            # If effect-sizes and standard errors are NULL, run with only test statistics
             if(!is.null(teststatistics) & is.null(effectsizes) & is.null(standarderrors)){
               .Object@teststatistics <- as.matrix(teststatistics)
             }
+            # If all three are NULL, throw an error with a helpful message
             else if(is.null(teststatistics) & is.null(effectsizes) & is.null(standarderrors))
-              stop("Need to provide test-statistics or both effect-sizes and standard errors!")
-            # Add conditional statement that checks if effectsize and standarderrors were given, but no tstats, and in this case set tstats = effectsize/stderror
+              stop("Need to provide test-statistics and/or both effect-sizes and standard errors!")
+            # If only effect-sizes or standard errors are given, throw an error with a helpful message
+            else if((is.null(effectsizes) & !is.null(standarderrors)) | 
+                    (!is.null(effectsizes) & is.null(standarderrors)))
+              stop("Need to provide both effect-sizes and standard errors!")
+            # If effect-sizes and standard errors were given, but no test statistics, set teststatistics = effectsize/stderror
             else if(is.null(teststatistics) & !is.null(effectsizes) & !is.null(standarderrors)) {
               .Object@effectsizes <- as.matrix(effectsizes)
               .Object@standarderrors <- as.matrix(standarderrors)
               .Object@teststatistics <- as.matrix(effectsizes/standarderrors)
+              warning("test-statistics were not provided: teststatistics = effectsizes/standarderrors")
             }
             # If all three are given, use all three provided statistics
             else {
@@ -47,7 +53,7 @@ setMethod("initialize", "Bacon",
               .Object@teststatistics <- as.matrix(teststatistics)
             }
             if(!all(is.finite(.Object@teststatistics)) & !na.exclude)
-              stop("Non finite value(s) in test statistics and na.exclude = FALSE!")
+              stop("Non finite value(s) in test-statistics and na.exclude = FALSE!")
             
             .Object@estimates <- matrix(nrow=ncol(.Object@teststatistics), ncol=9,
                                         dimnames=list(colnames(.Object@teststatistics),

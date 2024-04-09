@@ -7,8 +7,9 @@
 #     2. The inclusion of BPOPTIONS in the bpapply() call that sets the 
 #        RNGseed = rng.
 
-.bacon <- function(i, object, niter, nbins, trim, level, verbose, priors){
-  set.seed(1234)
+.bacon <- function(i, object, niter, nbins, trim, level, verbose, priors, globalSeed){
+  if(!is.null(globalSeed))
+    set.seed(globalSeed)
   ##TODO add some kind of trimming?
   tstats <- tstat(object)[,i]
   
@@ -74,9 +75,8 @@ bacon <- function(teststatistics=NULL, effectsizes=NULL, standarderrors=NULL,
                                 mu = list(lambda = c(0.0, 3.0, -3.0),
                                           tau = c(1000.0, 100.0, 100.0)),
                                 epsilon = list(gamma = c(90.0, 5.0, 5.0))),
-                  rng = NULL){ #Added an input variable for rng and set the default to NULL
-  
-  
+                  globalSeed = 42, # if set to NULL, randomization will occur for sequential and parallel bacon calls
+                  parallelSeed = 42){ # if input statistics are a matrix and globalSeed=NULL, setting parallelSeed=NULL will allow randomization across parallel bacon calls and across separate calls to bacon. 
   ##create new Bacon-object
   object <- new("Bacon", teststatistics = teststatistics,
                 effectsizes = effectsizes,
@@ -94,18 +94,24 @@ bacon <- function(teststatistics=NULL, effectsizes=NULL, standarderrors=NULL,
       if(nset > 1)
         message("Did you registered a biocparallel back-end?\n Continuing serial!")
       for(i in 1:ncol(tstat(object)))
-        object@traces[,,i] <- .bacon(i, object, niter, nbins, trim, level, verbose, priors)
+        object@traces[,,i] <- .bacon(i, object, niter, nbins, trim, level, verbose, priors, globalSeed)
     }
     else{
       nworkers <- min(c(nset, nworkers))
       message("Detected ", nworkers, " workers!\n Running in parallel!")
-      ret <- bplapply(1:ncol(tstat(object)), .bacon, object=object,
+      if(!is.null(parallelSeed)){
+        ret <- bplapply(1:ncol(tstat(object)), .bacon, object=object,
                       niter=niter, nbins=nbins, trim=trim, level=level, verbose=verbose, priors=priors, 
-                      BPOPTIONS = bpoptions(RNGseed = rng)) # Added the option to set the RNGseed
+                      globalSeed=globalSeed, BPOPTIONS = bpoptions(RNGseed = parallelSeed))
+      } else {
+        ret <- bplapply(1:ncol(tstat(object)), .bacon, object=object,
+                        niter=niter, nbins=nbins, trim=trim, level=level, verbose=verbose, priors=priors, 
+                        globalSeed=globalSeed)
+      }
       object@traces <- simplify2array(ret)
     }
   } else
-    object@traces[,,1] <- .bacon(1, object, niter, nbins, trim=trim, level, verbose, priors)
+    object@traces[,,1] <- .bacon(1, object, niter, nbins, trim=trim, level, verbose, priors, globalSeed)
   
   ##summarize traces
   for(i in 1:ncol(tstat(object)))
