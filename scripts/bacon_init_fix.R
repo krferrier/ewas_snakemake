@@ -69,3 +69,4 @@ setMethod("initialize", "Bacon",
             .Object@na.exclude <- na.exclude
             .Object
           })
+
