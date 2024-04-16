@@ -65,3 +65,30 @@ setMethod("ggposteriors", "Bacon", function(object, thetas, index, alphas, xlab,
   print(p)
 })
 ggposteriors(bc)
+
+setGeneric("ggfit", function(object, index=1, ...){ standardGeneric("ggfit") })
+setMethod("ggfit", "Bacon", function(object, index, col="grey75", border="grey75", ...){
+  gg_plotnormmix(tstat(object, corrected=FALSE)[, index], estimates(object)[index, ], ...)
+})
+
+gg_plotnormmix <- function(x, theta, ...){
+  x <- data.frame(x = x)
+  theta <- data.frame(y = theta)
+  fit <- ggplot(x, aes(x=x , y = after_stat(density))) +
+    geom_histogram(fill = "grey", color="black", binwidth = 1.5) +
+    geom_line(aes(x=x, y =dnorm(x, mean(x), sd(x))), lwd=1) +
+    geom_line(aes(x=x, y=theta["p.0",]*dnorm(x, theta["mu.0",], theta["sigma.0",])), 
+              color="red",
+              lwd = 1.5) +
+    geom_line(aes(x=x, y=theta["p.1",]*dnorm(x, theta["mu.1",], theta["sigma.1",])), 
+              color="green",
+              lwd=1.5) +
+    geom_line(aes(x=x, y=theta["p.2",]*dnorm(x, theta["mu.2",], theta["sigma.2",])), 
+              color="blue",
+              lwd=1.5) +
+    theme_cowplot(font_size = 12) +
+    xlab("test statistics") +
+    ylab("Density")
+  
+  print(fit)
+} 

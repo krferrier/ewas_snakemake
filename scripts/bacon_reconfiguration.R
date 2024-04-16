@@ -19,7 +19,7 @@ source("bacon_init_fix.R")
 source("modified_bacon_plots.R")
 
 # Read in EWAS summary statistics
-ewas <- fread("~/Downloads/jhs_Female_bmi_ewas.csv")
+ewas <- fread("~/Lange_Lab/Data/JHS/Methylation/bmi_ewas/jhs_f_bmi_ewas.csv")
 ewas <- ewas[, 1:6]
 
 # Run bacon on tstatistics, effect-sizes, and standard errors
@@ -47,43 +47,11 @@ ewas$b.lambda <- QCEWAS::P_lambda(ewas$bacon.pval)
 ggtraces(bc) + labs(title = "filename")
 ggsave("filename_bacon_traces.jpg", width = 16, height = 9.8, units = "cm")
 
-posteriors(bc) 
-fit(bc)
-#dev.off()
+ggposteriors(bc) + labs(title = "filename")
+ggsave("filename_bacon_posteriors.jpg", width = 16, height = 9.8, units = "cm")
 
-posteriors(bc)
-fit(bc)
+ggfit(bc) + labs(title = "filename")
+ggsave("filename_bacon_fit.jpg", width = 16, height = 9.8, units = "cm")
+
 qqman::qq(subset$p.value, main = "Before Bacon")
 qqman::qq(subset$bacon.pval, main = "After Bacon")
-bacon_bmi_ewas <- list()
-set.seed(2974)
-for (i in 1:length(bmi_ewas)){
-  name <- names(bmi_ewas)[i]
-  subset <- bmi_ewas[[name]]
-  # Run bacon
-  bacon_res <- bacon(teststatistics = subset$statistic,
-                     verbose = T,
-                     trim = 0.999)
-  bacon_effects <- bacon(teststatistics = NULL,
-                         effectsizes = subset$estimate,
-                         standarderrors = subset$std.error,
-                         verbose = T,
-                         trim = 0.999)
-  # Add bacon results to subset dataframe
-  subset$bacon.pval <- bacon::pval(bacon_res)
-  subset$bacon.statistic <- bacon::tstat(bacon_res)
-  subset$bacon.es <- bacon::es(bacon_effects)
-  subset$bacon.se <- bacon::se(bacon_effects)
-  b.lambda <- QCEWAS::P_lambda(subset$bacon.pval)
-  lambda <- QCEWAS::P_lambda(subset$p.value)
-  subset$lambda <-lambda
-  subset$b.lambda <- b.lambda
-  bacon_bmi_ewas[[name]] <- subset
-  cat("lambda before bacon: ", lambda, "\n", "lambda after bacon: ", b.lambda, "\n")
-  # Run performance tests
-  traces(bacon_res)
-  posteriors(bacon_res)
-  fit(bacon_effects)
-  qqman::qq(subset$p.value, main = "Before Bacon")
-  qqman::qq(subset$bacon.pval, main = "After Bacon")
-}
