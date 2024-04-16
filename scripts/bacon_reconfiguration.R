@@ -10,11 +10,13 @@ library(QCEWAS)
 library(qqman)
 library(ggplot2)
 library(reshape2)
+library(tibble)
+library(cowplot)
 
 # Import modified bacon functions
 source("bacon_rng_fix.R")
 source("bacon_init_fix.R")
-#source("modified_bacon_methods.R")
+source("modified_bacon_plots.R")
 
 # Read in EWAS summary statistics
 ewas <- fread("~/Downloads/jhs_Female_bmi_ewas.csv")
@@ -42,12 +44,13 @@ ewas$lambda <- QCEWAS::P_lambda(ewas$p.value)
 ewas$b.lambda <- QCEWAS::P_lambda(ewas$bacon.pval)
 
 # Run performance tests and export plots
-traces(gc)
+ggtraces(bc) + labs(title = "filename")
+ggsave("filename_bacon_traces.jpg", width = 16, height = 9.8, units = "cm")
 
 posteriors(bc) 
 fit(bc)
 #dev.off()
-jpeg(paste0("filename", "_posteriors.jpg"))
+
 posteriors(bc)
 fit(bc)
 qqman::qq(subset$p.value, main = "Before Bacon")

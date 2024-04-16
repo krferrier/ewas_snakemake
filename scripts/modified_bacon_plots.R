@@ -1,6 +1,5 @@
-library(tibble)
-library(cowplot)
-traces_ggplot <- function(object, burnin=TRUE, index=1){
+setGeneric("ggtraces", function(object, burnin=TRUE, index=1){ standardGeneric("ggtraces") })
+setMethod( "ggtraces", "Bacon", function(object, burnin=TRUE, index=1){
   if(burnin)
     gstraces <- object@traces[,,index]
   else
@@ -22,7 +21,8 @@ traces_ggplot <- function(object, burnin=TRUE, index=1){
     scale_x_continuous(labels = c("",1000, "", 3000, "", 5000)) +
     theme_cowplot(font_size = 12) +
     theme(strip.background = element_blank(),
-          strip.placement = "outside") +
+          strip.placement = "outside",
+          plot.margin = margin(0.15, 0.25, 0.15, 0.15, "in")) +
     xlab("Iteration") +
     ylab("Trace")
   g
@@ -31,6 +31,37 @@ traces_ggplot <- function(object, burnin=TRUE, index=1){
   }
   
   print(g)
-}
+})
 
-traces_ggplot(bc) + labs(title="title")
+setGeneric("ggposteriors", function(object,
+                                  thetas = c("sigma.0", "p.0"), index = 1,
+                                  alphas=c(0.95, 0.9, 0.75), xlab="", ylab="", ...){
+  standardGeneric("ggposteriors")
+})
+setMethod("ggposteriors", "Bacon", function(object, thetas, index, alphas, xlab, ylab, ...){
+  
+  if(any(!(thetas %in% colnames(object@traces[,, index]))))
+    stop("'thetas' should be two of: ", paste(colnames(object@traces[,, index]), collapse=", "), "!")
+  
+  gstraces <- object@traces[-c(1:object@nburnin), thetas, index]
+  
+  if(xlab=="") xlab <- thetas[1]
+  if(ylab=="") ylab <- thetas[2]
+  
+  df <- data.frame(x = gstraces[,1], y = gstraces[,2])
+  est_df <- data.frame(x = estimates(object)[index, thetas[1]], y = estimates(object)[index, thetas[2]])
+  
+  # Plot using ggplot
+  p <- ggplot(df, aes(x = x, y = y)) +
+    geom_point(shape = 20) +
+    stat_ellipse(level = 0.95, col = "blue") +
+    stat_ellipse(level = 0.9, col = "blue") +
+    stat_ellipse(level = 0.75, col = "blue") +
+    labs(x = xlab,
+         y = ylab) + 
+    ggtitle(paste("median at:", round(estimates(object)[thetas], 3))) +
+    geom_point(data = est_df, aes(x = x, y = y), color = "red", shape = 17, size = 4)
+  
+  print(p)
+})
+ggposteriors(bc)
