@@ -64,7 +64,7 @@ setMethod("ggposteriors", "Bacon", function(object, thetas, index, alphas, xlab,
   
   print(p)
 })
-ggposteriors(bc)
+
 
 setGeneric("ggfit", function(object, index=1, ...){ standardGeneric("ggfit") })
 setMethod("ggfit", "Bacon", function(object, index, col="grey75", border="grey75", ...){

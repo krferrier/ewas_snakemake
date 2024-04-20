@@ -32,10 +32,11 @@ make_subset.key <- function(data, stratify_vars) {
 # Stratify other datasets with the subset.key
 stratify.pheno <- function(pheno.df, stratify_vars){
   pheno <- lapply(subset.key, function(i){
-    df.sub = pheno.df[rownames(pheno.df) %in% i,]
-    df.sub <- df.sub[order(rownames(df.sub)),]
+    df.sub <- pheno.df[rownames(pheno.df) %in% i,]
+    df.sub <- df.sub[order(rownames(df.sub)),] 
     if(length(stratify_vars) != 0){
-      df.sub <- df.sub %>% dplyr::select(-all_of(stratify_vars))
+      df.sub <- df.sub %>% 
+        dplyr::select(-all_of(stratify_vars)) 
     }
     return(df.sub)
   })

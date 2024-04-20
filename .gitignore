@@ -1,4 +1,6 @@
 .Rproj.user
 .Rhistory
 .RData
-.Ruserdata
+.Ruserdata\
+workflow/ewas_snakemake.Rproj
+results/
