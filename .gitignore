@@ -4,3 +4,6 @@
 .Ruserdata\
 workflow/ewas_snakemake.Rproj
 results/
+.vscode/
+workflow/__pycache__/
+
