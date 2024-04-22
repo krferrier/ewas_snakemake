@@ -1,20 +1,4 @@
-import pandas as pd
-from wildcards import generate_observed_combinations
-configfile: "workflow/config.yml"
-
-
-GROUPS = generate_observed_combinations(df=pd.read_csv(config["pheno"]), stratify_cols=config["stratify_variables"])
-PLOTS = ["traces", "posteriors", "fit", "qqs"]
-
-rule all:
-    input:
-        expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_results" + config["out_type"], group=GROUPS),
-        expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_bacon_results" + config["out_type"], group=GROUPS),
-        expand(config["out_directory"] + "{group}/bacon_plots/{group}_" + config["association_variable"] + "_{plot}.jpg", group=GROUPS, plot=PLOTS),
-        "scripts/meta_analysis_script.sh",
-        config["out_directory"] + config["association_variable"] + "_ewas_meta_analysis_results_1.txt"
-
-rule run_ewas:
+rule run_stratified_ewas:
     input:
         script = "scripts/ewas.R",
         pheno_file = config["pheno"],
@@ -30,7 +14,7 @@ rule run_ewas:
     output: 
         expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_results" + config["out_type"], group=GROUPS)
     conda:
-        "envs/ewas.yml"
+        "../envs/ewas.yml"
     shell:
         f"""
         Rscript {{input.script}} \

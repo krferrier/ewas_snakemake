@@ -188,6 +188,10 @@ for(j in names(subset.key)){
 for (i in names(subset.key)){
   sub.results <- results[[i]]
   sub.results$n <- nrow(pheno[[i]])
-  file.name <- paste0(out_dir, i, "/", i, "_", assoc_var, "_ewas_results", out_type)
+  if(i == "all"){
+    file.name <- paste0(out_dir, assoc_var, "_ewas_results", out_type)
+    } else{
+      file.name <- paste0(out_dir, i, "/", i, "_", assoc_var, "_ewas_results", out_type)
+    }
   fwrite(sub.results, file = file.name)
 }

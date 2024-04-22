@@ -2,8 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata\
-workflow/ewas_snakemake.Rproj
+ewas_snakemake.Rproj
 results/
 .vscode/
-workflow/__pycache__/
+__pycache__/
+.snakemake
 

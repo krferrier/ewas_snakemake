@@ -1,8 +1,8 @@
 mvals: "data/mvals.csv.gz"
 pheno: "data/pheno.csv"
 association_variable: "BMI"
-stratified_ewas: "yes"
-stratify_variables: ["sex"]
+stratified_ewas: "no"
+stratify_variables: []
 chunk_size: 100
 processing_type: "multicore"
 workers: 2

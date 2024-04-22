@@ -20,21 +20,24 @@ source("scripts/modified_bacon_plots.R")
 # Define command line arguments
 parser <- argparse::ArgumentParser(description="Script for running BACON")
 parser$add_argument('--input-file', '-i',
-                    required=TRUE,
-                    help="Path to ewas results data")
+                     required=TRUE,
+                     help="Path to ewas results data")
 parser$add_argument('--out-dir',
-                    required=TRUE,
-                    help="Path to output directory")
+                     required=TRUE,
+                     help="Path to output directory")
 parser$add_argument('--out-prefix',
-                    required=TRUE,
-                    help="Prefix for output files")
+                     type="character",
+                     nargs="?",
+                     const="all",
+                     default="all",
+                     help="Prefix for output files")
 parser$add_argument('--out-type', 
-                    type="character",
-                    choices=c(".csv", ".csv.gz"), 
-                    nargs="?",                    
-                    const=".csv",
-                    default=".csv",  
-                    help="Output file type: CSV or CSV.GZ")
+                     type="character",
+                     choices=c(".csv", ".csv.gz"), 
+                     nargs="?",                    
+                     const=".csv",
+                     default=".csv",  
+                     help="Output file type: CSV or CSV.GZ")
 
 # parse arguments
 args <- parser$parse_args()
@@ -47,16 +50,22 @@ out_type <- args$out_type
 # Read in EWAS summary statistics
 ewas <- fread(ewas_results)
 assoc <- unique(ewas$term)
-filename <- paste0(filename, "_", assoc)
-plotname <- paste0(plotname, " ", assoc)
+if(filename=="all"){
+       filename <- assoc
+       plotname <- assoc
+} else{
+       filename <- paste0(filename, "_", assoc)
+       plotname <- paste0(plotname, " ", assoc)
+}
+
 
 # Run bacon on tstatistics, effect-sizes, and standard errors
 bc <- bacon(teststatistics = ewas$statistic,
-             effectsizes = ewas$estimate,
-             standarderrors = ewas$std.error,
-             verbose = T,
-             trim = 0.999,
-             globalSeed = 42)
+              effectsizes = ewas$estimate,
+              standarderrors = ewas$std.error,
+              verbose = T,
+              trim = 0.999,
+              globalSeed = 42)
 
 # Extract bacon-adjusted p-value
 ewas$bacon.pval <- bacon::pval(bc)
@@ -75,22 +84,25 @@ ewas$b.lambda <- QCEWAS::P_lambda(ewas$bacon.pval)
 fwrite(ewas, file=paste0(out_dir, filename, "_ewas_bacon_results", out_type))
 
 # Run performance tests and export plots
-ggtraces(bc) + labs(title = paste0(plotname, " traces"))
-ggsave(paste0(out_dir, "bacon_plots/", filename, "_traces.jpg"), 
+traces_plot <- ggtraces(bc) + labs(title = paste0(plotname, " traces"))
+ggsave(paste0(out_dir, "bacon_plots/", filename, "_traces.jpg"),
+       plot = traces_plot,
        width = 16, height = 9.8, units = "cm")
 
-ggposteriors(bc) + labs(title = paste0(plotname, " posteriors"))
+posteriors_plot <- ggposteriors(bc) + labs(title = paste0(plotname, " posteriors"))
 ggsave(paste0(out_dir, "bacon_plots/", filename, "_posteriors.jpg"),
+       plot = posteriors_plot,
        width = 10, height = 9.8, units = "cm")
 
-ggfit(bc) + labs(title = paste0(plotname, " fit"))
-ggsave(paste0(out_dir, "bacon_plots/", filename, "_fit.jpg"), 
+fit_plot <- ggfit(bc) + labs(title = paste0(plotname, " fit"))
+ggsave(paste0(out_dir, "bacon_plots/", filename, "_fit.jpg"),
+       plot = fit_plot,
        width = 12, height = 9.8, units = "cm")
 
-bacon::plot(bc, type = c("qq")) + 
-  labs(title = paste0(plotname, " qq plots")) +
-  theme(legend.position = "none")
-ggsave(paste0(out_dir, "bacon_plots/", filename, "_qqs.jpg"), 
+qq_plot <- bacon::plot(bc, type = c("qq")) + 
+       labs(title = paste0(plotname, " qq plots")) +
+       theme(legend.position = "none")
+ggsave(paste0(out_dir, "bacon_plots/", filename, "_qqs.jpg"),
+       plot = qq_plot,
        width = 12, height = 9.8, units = "cm")
-  
 

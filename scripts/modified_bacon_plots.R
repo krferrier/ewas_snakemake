@@ -30,7 +30,7 @@ setMethod( "ggtraces", "Bacon", function(object, burnin=TRUE, index=1){
     g <- g + xlim(c((object@nburnin+1), object@niter))
   }
   
-  print(g)
+  return(g)
 })
 
 setGeneric("ggposteriors", function(object,
@@ -62,7 +62,7 @@ setMethod("ggposteriors", "Bacon", function(object, thetas, index, alphas, xlab,
     ggtitle(paste("median at:", round(estimates(object)[thetas], 3))) +
     geom_point(data = est_df, aes(x = x, y = y), color = "red", shape = 17, size = 4)
   
-  print(p)
+  return(p)
 })
 
 
@@ -90,5 +90,5 @@ gg_plotnormmix <- function(x, theta, ...){
     xlab("test statistics") +
     ylab("Density")
   
-  print(fit)
+  return(fit)
 } 
