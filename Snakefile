@@ -9,7 +9,8 @@ PLOTS = ["traces", "posteriors", "fit", "qqs"]
 
 def rule_all_combined():
     files1 = [config["out_directory"] + config["association_variable"] + "_ewas_results" + config["out_type"],
-        config["out_directory"] + config["association_variable"] + "_ewas_bacon_results" + config["out_type"]]
+        config["out_directory"] + config["association_variable"] + "_ewas_bacon_results" + config["out_type"],
+        config["out_directory"] + config["association_variable"] + "_ewas_annotated_results" + config["out_type"]]
     files2 = expand(config["out_directory"] + "bacon_plots/" + config["association_variable"] + "_{plot}.jpg", plot=PLOTS)
     files = files1 + files2
     return(files)
@@ -19,7 +20,8 @@ def rule_all_stratified():
     files2 = expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_bacon_results" + config["out_type"], group=GROUPS)
     files3 = expand(config["out_directory"] + "{group}/bacon_plots/{group}_" + config["association_variable"] + "_{plot}.jpg", group=GROUPS, plot=PLOTS)
     files4 = ["scripts/meta_analysis_script.sh", 
-        config["out_directory"] + config["association_variable"] + "_ewas_meta_analysis_results_1.txt"]
+        config["out_directory"] + config["association_variable"] + "_ewas_meta_analysis_results_1.txt",
+        config["out_directory"] + config["association_variable"] + "_ewas_meta_annotated_results" + config["out_type"]]
     files = files1 + files2 + files3 + files4
     return(files)
 

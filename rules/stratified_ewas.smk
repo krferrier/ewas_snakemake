@@ -38,7 +38,6 @@ for group in GROUPS:
             script = "scripts/run_bacon.R"
         params:
             o_dir = config["out_directory"] + f"{group}/",
-            plots_dir = config["out_directory"] + "bacon_plots/",
             o_type = config["out_type"],
             o_prefix = f"{group}"
         output: 
@@ -74,3 +73,24 @@ rule run_metal:
         "library://krferrier/metal/meta_analysis:metal"
     shell: 
         f"metal SOURCE {{input.script}}"
+
+rule stratified_ewas_annotation:
+    input: 
+        in_file = config["out_directory"] + config["association_variable"] + "_ewas_meta_analysis_results_1.txt",
+        script = "scripts/annotation.R"
+    params:
+        o_dir = config["out_directory"],
+        strat = config["stratified_ewas"],
+        assoc = config["association_variable"],
+        o_type = config["out_type"]
+    output: 
+        config["out_directory"] + config["association_variable"] + "_ewas_meta_annotated_results" + config["out_type"]
+    shell:
+        f"""
+        Rscript {{input.script}} \
+        --input-file {{input.in_file}} \
+        --out-dir {{params.o_dir}} \
+        --stratified {{params.strat}} \
+        --assoc {{params.assoc}} \
+        --out-type {{params.o_type}}
+        """

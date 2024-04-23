@@ -34,7 +34,6 @@ rule run_bacon:
         script = "scripts/run_bacon.R"
     params:
         o_dir = config["out_directory"],
-        plots_dir = config["out_directory"] + "bacon_plots/",
         o_type = config["out_type"],
         o_prefix = ""
     output: 
@@ -48,3 +47,26 @@ rule run_bacon:
         --out-prefix {{params.o_prefix}} \
         --out-type {{params.o_type}} \
         """
+
+rule combined_ewas_annotation:
+    input: 
+        in_file = config["out_directory"] + config["association_variable"] + "_ewas_bacon_results" + config["out_type"],
+        script = "scripts/annotation.R"
+    params:
+        o_dir = config["out_directory"],
+        strat = config["stratified_ewas"],
+        assoc = config["association_variable"],
+        o_type = config["out_type"]
+    output: 
+        config["out_directory"] + config["association_variable"] + "_ewas_annotated_results" + config["out_type"]
+    shell:
+        f"""
+        Rscript {{input.script}} \
+        --input-file {{input.in_file}} \
+        --out-dir {{params.o_dir}} \
+        --stratified {{params.strat}} \
+        --assoc {{params.assoc}} \
+        --out-type {{params.o_type}}
+        """
+    
+    
