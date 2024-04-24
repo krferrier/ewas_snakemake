@@ -13,9 +13,9 @@ library(tibble)
 library(cowplot)
 
 # Import modified bacon functions
-source("scripts/bacon_rng_fix.R")
-source("scripts/bacon_init_fix.R")
-source("scripts/modified_bacon_plots.R")
+source("scripts/updated_bacon/bacon_rng_fix.R")
+source("scripts/updated_bacon/bacon_init_fix.R")
+source("scripts/updated_bacon/modified_bacon_plots.R")
 
 # Define command line arguments
 parser <- argparse::ArgumentParser(description="Script for running BACON")

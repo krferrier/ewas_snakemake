@@ -25,7 +25,7 @@ setMethod( "ggtraces", "Bacon", function(object, burnin=TRUE, index=1){
           plot.margin = margin(0.15, 0.25, 0.15, 0.15, "in")) +
     xlab("Iteration") +
     ylab("Trace")
-  g
+  
   if (!burnin) {
     g <- g + xlim(c((object@nburnin+1), object@niter))
   }
@@ -67,7 +67,7 @@ setMethod("ggposteriors", "Bacon", function(object, thetas, index, alphas, xlab,
 
 
 setGeneric("ggfit", function(object, index=1, ...){ standardGeneric("ggfit") })
-setMethod("ggfit", "Bacon", function(object, index, col="grey75", border="grey75", ...){
+setMethod("ggfit", "Bacon", function(object, index, ...){
   gg_plotnormmix(tstat(object, corrected=FALSE)[, index], estimates(object)[index, ], ...)
 })
 
