@@ -58,7 +58,8 @@ if(stratified=="no"){
 } else{
         ewas <- left_join(ewas, annotation, by = c("MarkerName"="cpgid"))
         ewas <- ewas %>% dplyr::select(-Allele1, -Allele2)
-        ewas <- ewas[order(ewas$'P-value'),]
+        ewas$"P-value" <- as.numeric(ewas$"P-value")
+        ewas <- ewas[order(ewas$"P-value"),]
 }
 file_name <- paste0(out_dir, assoc, "_ewas_annotated_results", out_type)
 fwrite(ewas, file = file_name)

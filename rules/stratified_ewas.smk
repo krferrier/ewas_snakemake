@@ -14,7 +14,7 @@ rule run_stratified_ewas:
     output: 
         expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_results" + config["out_type"], group=GROUPS)
     conda:
-        "../envs/ewas.yml"
+        "../envs/ewas.yaml"
     shell:
         f"""
         Rscript {{input.script}} \
@@ -43,6 +43,8 @@ for group in GROUPS:
         output: 
             config["out_directory"] + f"{group}/{group}_" + config["association_variable"] + "_ewas_bacon_results" + config["out_type"],
             expand(config["out_directory"] + f"{group}/bacon_plots/{group}_" + config["association_variable"] + "_{plot}.jpg", plot = PLOTS)
+        conda:
+            "../envs/ewas.yaml"
         shell:
             f"""
             Rscript {{input.script}} \
@@ -73,24 +75,3 @@ rule run_metal:
         "library://krferrier/metal/meta_analysis:metal"
     shell: 
         f"metal SOURCE {{input.script}}"
-
-rule stratified_ewas_annotation:
-    input: 
-        in_file = config["out_directory"] + config["association_variable"] + "_ewas_meta_analysis_results_1.txt",
-        script = "scripts/annotation.R"
-    params:
-        o_dir = config["out_directory"],
-        strat = config["stratified_ewas"],
-        assoc = config["association_variable"],
-        o_type = config["out_type"]
-    output: 
-        config["out_directory"] + config["association_variable"] + "_ewas_meta_annotated_results" + config["out_type"]
-    shell:
-        f"""
-        Rscript {{input.script}} \
-        --input-file {{input.in_file}} \
-        --out-dir {{params.o_dir}} \
-        --stratified {{params.strat}} \
-        --assoc {{params.assoc}} \
-        --out-type {{params.o_type}}
-        """

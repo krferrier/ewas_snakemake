@@ -13,7 +13,7 @@ rule run_combined_ewas:
     output: 
         config["out_directory"] + config["association_variable"] + "_ewas_results" + config["out_type"]
     conda:
-        "../envs/ewas.yml"
+        "../envs/ewas.yaml"
     shell:
         f"""
         Rscript {{input.script}} \
@@ -39,6 +39,8 @@ rule run_bacon:
     output: 
         config["out_directory"] + config["association_variable"] + "_ewas_bacon_results" + config["out_type"],
         expand(config["out_directory"] + "bacon_plots/" + config["association_variable"] + "_{plot}.jpg", plot = PLOTS)
+    conda:
+        "../envs/ewas.yaml"
     shell:
         f"""
         Rscript {{input.script}} \
@@ -46,27 +48,6 @@ rule run_bacon:
         --out-dir {{params.o_dir}} \
         --out-prefix {{params.o_prefix}} \
         --out-type {{params.o_type}} \
-        """
-
-rule combined_ewas_annotation:
-    input: 
-        in_file = config["out_directory"] + config["association_variable"] + "_ewas_bacon_results" + config["out_type"],
-        script = "scripts/annotation.R"
-    params:
-        o_dir = config["out_directory"],
-        strat = config["stratified_ewas"],
-        assoc = config["association_variable"],
-        o_type = config["out_type"]
-    output: 
-        config["out_directory"] + config["association_variable"] + "_ewas_annotated_results" + config["out_type"]
-    shell:
-        f"""
-        Rscript {{input.script}} \
-        --input-file {{input.in_file}} \
-        --out-dir {{params.o_dir}} \
-        --stratified {{params.strat}} \
-        --assoc {{params.assoc}} \
-        --out-type {{params.o_type}}
         """
     
     
