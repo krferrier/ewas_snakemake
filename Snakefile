@@ -3,40 +3,52 @@ from helper_fxns import generate_observed_combinations
 configfile: "config.yml"
 
 #----SET VARIABLES----#
+PHENO = config["pheno"]
+MVALS = config["mvals"]
+ASSOC = config["association_variable"]
 STRATIFIED = config["stratified_ewas"]
-GROUPS = generate_observed_combinations(df=pd.read_csv(config["pheno"]), stratify_cols=config["stratify_variables"])
+STRAT_VARS = config["stratify_variables"]
+CHUNK_SIZE = config["chunk_size"]
+PROCESSING_TYPE = config["processing_type"]
+N_WORKERS = config["workers"]
+OUT_DIR = config["out_directory"]
+OUT_TYPE = config["out_type"]
 PLOTS = ["traces", "posteriors", "fit", "qqs"]
 
-def rule_all_combined():
-    files1 = [config["out_directory"] + config["association_variable"] + "_ewas_results" + config["out_type"],
-        config["out_directory"] + config["association_variable"] + "_ewas_bacon_results" + config["out_type"],
-        config["out_directory"] + config["association_variable"] + "_ewas_annotated_results" + config["out_type"],
-        config["out_directory"] + config["association_variable"] + "_ewas_manhattan_qq_plots.jpg"]
-    files2 = expand(config["out_directory"] + "bacon_plots/" + config["association_variable"] + "_{plot}.jpg", plot=PLOTS)
-    files = files1 + files2
-    return(files)
+# Stratified EWAS
+GROUPS = generate_observed_combinations(df=pd.read_csv(config["pheno"]), stratify_cols=config["stratify_variables"])
 
-def rule_all_stratified(): 
-    files1 = expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_results" + config["out_type"], group=GROUPS)
-    files2 = expand(config["out_directory"] + "{group}/{group}_" + config["association_variable"] + "_ewas_bacon_results" + config["out_type"], group=GROUPS)
-    files3 = expand(config["out_directory"] + "{group}/bacon_plots/{group}_" + config["association_variable"] + "_{plot}.jpg", group=GROUPS, plot=PLOTS)
-    files4 = ["scripts/meta_analysis_script.sh", 
-        config["out_directory"] + config["association_variable"] + "_ewas_meta_analysis_results_1.txt",
-        config["out_directory"] + config["association_variable"] + "_ewas_annotated_results" + config["out_type"],
-        config["out_directory"] + config["association_variable"] + "_ewas_manhattan_qq_plots.jpg"]
-    files = files1 + files2 + files3 + files4
-    return(files)
+#---- INPUT & OUTPUT FILES ----#
+# Final output results, stratified or not
+annotated_results = OUT_DIR + ASSOC + "_ewas_annotated_results" + OUT_TYPE
+manhattan_qq_plot = OUT_DIR + ASSOC + "_ewas_manhattan_qq_plots.jpg"
 
-def target_files(wildcards):
-    if STRATIFIED == "yes":
-        files = rule_all_stratified()
-    else:
-        files = rule_all_combined()
-    return(files)
+# Combined (not stratified) EWAS outputs
+raw_results = OUT_DIR + ASSOC + "_ewas_results" + OUT_TYPE
+bacon_results = OUT_DIR + ASSOC + "_ewas_bacon_results" + OUT_TYPE
+bacon_plots = expand(OUT_DIR + "bacon_plots/" + ASSOC + "_{plot}.jpg", plot=PLOTS)
 
+# Stratified EWAS outputs
+strat_raw_results = expand(OUT_DIR + "{group}/{group}_" + ASSOC + "_ewas_results" + OUT_TYPE, group=GROUPS)
+strat_bacon_results = expand(OUT_DIR + "{group}/{group}_" + ASSOC + "_ewas_bacon_results" + OUT_TYPE, group=GROUPS)
+strat_bacon_plots = expand(OUT_DIR + "{group}/bacon_plots/{group}_" + ASSOC + "_{plot}.jpg", group=GROUPS, plot=PLOTS)
+meta_analysis_results = OUT_DIR + ASSOC + "_ewas_meta_analysis_results_1.txt"
+
+#---- DETERMINE INPUT FILES FOR RULE ALL ----#
+if STRATIFIED == "yes":
+    in_files = [PHENO, MVALS, strat_raw_results, strat_bacon_results,
+                strat_bacon_plots, meta_analysis_results,
+                annotated_results, manhattan_qq_plot]
+else:
+    in_files = [PHENO, MVALS, raw_results, bacon_results, 
+                bacon_plots, annotated_results, 
+                manhattan_qq_plot]
+
+#---- BEGIN WORKFLOW ----#
 rule all:
     input:
-        target_files
+        in_files
+
 
 include: "rules/combined_ewas.smk"
 include: "rules/stratified_ewas.smk"

@@ -41,9 +41,9 @@ out_type <- args$out_type
 ewas <- fread(results)
 
 # Load annotation data
-hg38 <- fread("https://zhouserver.research.chop.edu/InfiniumAnnotation/20210615/EPIC/EPIC.hg38.manifest.gencode.v36.tsv.gz")
+hg38 <- fread("annotation_files/EPIC_hg38.tsv.gz")
 hg38 <- hg38 %>% dplyr::rename(cpgid = "probeID") 
-cpg.to.rs <- fread("https://zhouserver.research.chop.edu/InfiniumAnnotation/20180909/EPIC/EPIC.hg38.commonsnp.tsv.gz")
+cpg.to.rs <- fread("annotation_files/EPIC_snp_key.tsv.gz")
 cpg.to.rs <- cpg.to.rs %>%
     dplyr::select(probeID, snpID, snpChrm, snpEnd, snpRef,
                 snpAlt, GAN, GAC, GAF,distance) %>%

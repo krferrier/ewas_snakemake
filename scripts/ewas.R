@@ -14,8 +14,7 @@ library(tibble)
 library(tictoc)
 
 # Source functions from outside scripts
-source("scripts/stratify.R")
-source("scripts/chunk.R")
+source("scripts/fxns/chunk_fxns.R")
 
 ################################################################################################################################
 #                                   DEFINE AND PARSE COMMAND LINE ARGUMENTS                                                    # 
@@ -37,10 +36,10 @@ parser$add_argument("--assoc",
                     type="character", 
                     nargs=1, 
                     help="Variable to perform association with.")
-parser$add_argument("--stratify", 
-                    type="character", 
-                    nargs="*", 
-                    help="Variable(s) to stratify.")
+parser$add_argument('--stratified',
+                    choices=c("yes", "no"), 
+                    default="no",
+                    help="Stratified analysis: yes or no")
 parser$add_argument("--chunk-size", 
                     type="integer", 
                     nargs="?", 
@@ -72,19 +71,26 @@ parser$add_argument('--out-type',
                     nargs="?",                    
                     const=".csv",
                     default=".csv",  
-                    help="Output file type: CSV or CSV.GZ")                    
+                    help="Output file type: CSV or CSV.GZ") 
+parser$add_argument('--out-prefix',
+                    type="character",
+                    nargs="?",
+                    const="all",
+                    default="all",
+                    help="Prefix for output files")                       
 
 # parse arguments
 args <- parser$parse_args()
 pheno <- args$pheno
 mvals <- args$methyl
 assoc_var <- args$assoc
-stratify_vars <- args$stratify
+stratified <- args$stratified
 chunk_size <- args$chunk_size
 pt <- args$processing_type
 n_workers <- args$workers
 out_dir <- args$out_dir
 out_type <- args$out_type
+out_prefix <- args$out_prefix
 
 ####################################################################################################
 #                                   READ IN DATA                                                   #
@@ -92,10 +98,10 @@ out_type <- args$out_type
 
 # Read in phenotype data
 pheno <- fread(pheno) %>% 
-  column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 # Read in methylation data
 mvals <- fread(mvals) %>% 
-column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 
 
 ####################################################################################################
@@ -105,22 +111,11 @@ column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 # Check that the association variable exists in the phenotype data
 missing_vars <- setdiff(assoc_var, colnames(pheno))
 if (length(missing_vars) > 0) {
-  stop(paste("The following association variable(s) do not exist in the phenotype data:", paste(missing_vars, collapse = ", ")))
-  # If the variable does exist in the phenotype data, set the variable as the first column
+    stop(paste("The following association variable(s) do not exist in the phenotype data:", paste(missing_vars, collapse = ", ")))
+    # If the variable does exist in the phenotype data, set the variable as the first column
 }else{
-  pheno <- pheno %>% relocate(all_of(assoc_var))
+    pheno <- pheno %>% relocate(all_of(assoc_var))
 }
-
-####################################################################################################
-#                                   STRATIFY DATA                                                  #
-####################################################################################################
-
-# Make a key for subsetting the data based on the --stratify variables given. If none were given, the subset.key is a list of all samples. 
-subset.key <- make_subset.key(pheno, stratify_vars)
-
-# Stratify the phenotype and methylation data with the subset.key. If no stratification variables were given, the data is not stratified. 
-pheno <- stratify.pheno(pheno, stratify_vars)
-mvals <- stratify.mvals(mvals)
 
 
 ####################################################################################################
@@ -129,7 +124,8 @@ mvals <- stratify.mvals(mvals)
 
 # Create a list of cpg.chunks from a vector of all the CpGs to be tested, where each cpg.chunk is a list with n=chunk_size CpGs.
 # If the total number of CpGs is not perfectly divisible by chunk_size, then the last cpg.chunk will have a length equal to the remainder. 
-cpgs <- cpg.chunks(chunk_size, colnames(mvals[[1]]))
+cpgs <- cpg.chunks(chunk_size, colnames(mvals))
+mvals <- chunk.df(mvals, cpgs)
 
 
 ################################################################################################################################
@@ -139,59 +135,49 @@ cpgs <- cpg.chunks(chunk_size, colnames(mvals[[1]]))
 registerDoFuture()
 n.workers = n_workers
 if(pt=="sequential"){
-  plan(strategy = pt)
-  cat("Processing run sequentially. \n")
+    plan(strategy = pt)
+    cat("Processing run sequentially. \n")
 }else{
-  plan(strategy = pt, workers = n.workers)
-  cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
+    plan(strategy = pt, workers = n.workers)
+    cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
 }
 
-# Create a list for the results
+# Start timer 
+tic()
+# Create progress bar
+p <- progress::progress_bar$new(format = "[:bar] :percent ELAPSED::elapsed, ETA::eta",
+                                total = length(cpgs))
+# Create a list for results
 results <- list()
-
-# Loop through each strata. If data was not stratified, the loop will run once with all samples.
-for(j in names(subset.key)){
-  # Loop through each strata
-  cat("Starting Subset: ", j, "\n")
-  tic()
-  # Create progress bar
-  p <- progress::progress_bar$new(format = "[:bar] :percent ELAPSED::elapsed, ETA::eta",
-                                  total = length(cpgs))
-  p.sub <- pheno[[j]]
-  m.sub <- chunk.df(mvals[[j]],cpgs)
-  res.chunks <- list()
-  # Loop through chunks
-  for(ii in 1:length(cpgs)){
-    m.chunk <- m.sub[[ii]]
+# Loop through chunks
+for(ii in 1:length(cpgs)){
+    m.chunk <- mvals[[ii]]
     # Run linear regression
     ewas <- foreach(i = cpgs[[ii]], .packages = c("vars"), .verbose = F) %dopar% {
-      .GlobalEnv$m.chunk <- m.chunk
-      .GlobalEnv$p.sub <- p.sub
-      model.base <- paste(colnames(p.sub), collapse = " + ")
-      string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
-      fit <- lm(formula = string.formula, data = p.sub) %>%
-        broom::tidy(conf.int = T) %>%
-        dplyr::filter(term %in% c(assoc_var)) %>%
-        dplyr::mutate(cpgid = i)
-      fit
-    }
+            .GlobalEnv$m.chunk <- m.chunk
+            .GlobalEnv$pheno <- pheno
+            model.base <- paste(colnames(pheno), collapse = " + ")
+            string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
+            fit <- lm(formula = string.formula, data = pheno) %>%
+            broom::tidy(conf.int = T) %>%
+            dplyr::filter(term %in% c(assoc_var)) %>%
+            dplyr::mutate(cpgid = i)
+            fit
+            }
     ewas <- rbindlist(ewas)
-    res.chunks[[ii]] <- ewas
+    results[[ii]] <- ewas
     p$tick()
-  }
-  res.chunks <- rbindlist(res.chunks)
-  results[[j]] <- res.chunks
-  toc()
-}
-
-# Export results by strata (if analysis was stratified)
-for (i in names(subset.key)){
-  sub.results <- results[[i]]
-  sub.results$n <- nrow(pheno[[i]])
-  if(i == "all"){
-    file.name <- paste0(out_dir, assoc_var, "_ewas_results", out_type)
-    } else{
-      file.name <- paste0(out_dir, i, "/", i, "_", assoc_var, "_ewas_results", out_type)
     }
-  fwrite(sub.results, file = file.name)
+results <- rbindlist(results)
+toc()
+
+
+# Export results 
+results$n <- nrow(pheno)
+if (stratified == "yes"){
+    filename <- paste0(out_dir, out_prefix, "_", assoc_var, "_ewas_results", out_type)
+} else{
+    filename <- paste0(out_dir, assoc_var, "_ewas_results", out_type)
 }
+print(filename)
+fwrite(results, file = filename)

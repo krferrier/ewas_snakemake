@@ -1,3 +1,7 @@
+####################################################################################################
+#                                FUNCTIONS FOR CHUNKING                                            #
+####################################################################################################
+
 cpg.chunks <- function(n, cpgs){
   if(n<=0){
     stop("The number of CpGs specified in --chunk-size must be an integer greater than 0")
