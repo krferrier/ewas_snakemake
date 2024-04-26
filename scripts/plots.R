@@ -1,9 +1,11 @@
-library(argparse)
-library(dplyr)
-library(data.table)
-library(ggplot2)
-library(cowplot)
-library(QCEWAS)
+suppressPackageStartupMessages({
+  library(argparse)
+  library(dplyr)
+  library(data.table)
+  library(ggplot2)
+  library(cowplot)
+  library(QCEWAS)
+})
 
 # Define command line arguments
 parser <- argparse::ArgumentParser(description="Script for plotting ewas results")

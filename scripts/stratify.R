@@ -1,11 +1,13 @@
 # Script for stratifying phenotype and methylation data.
 # If no stratify variables are given, the subset.key will be a list of 1 dataframe with all samples.
+suppressPackageStartupMessages({
+  library(argparse)
+  library(data.table)
+  library(dplyr)
+  library(tibble)
+})
 
-library(argparse)
-library(data.table)
-library(dplyr)
-library(tibble)
-
+# Import functions for stratifying data
 source("scripts/fxns/stratify_fxns.R")
 
 ################################################################################################################################

@@ -1,16 +1,18 @@
 # Script for running BACON bias and inflation adjustment
 # Import libraries
-library(argparse)
-library(BiocParallel)
-library(dplyr)
-library(data.table)
-library(bacon)
-library(QCEWAS)
-library(qqman)
-library(ggplot2)
-library(reshape2)
-library(tibble)
-library(cowplot)
+suppressPackageStartupMessages({
+       library(argparse)
+       library(BiocParallel)
+       library(dplyr)
+       library(data.table)
+       library(bacon)
+       library(QCEWAS)
+       library(qqman)
+       library(ggplot2)
+       library(reshape2)
+       library(tibble)
+       library(cowplot)
+})
 
 # Import modified bacon functions
 source("scripts/updated_bacon/bacon_rng_fix.R")
@@ -56,6 +58,7 @@ if(filename=="all"){
 } else{
        filename <- paste0(filename, "_", assoc)
        plotname <- paste0(plotname, " ", assoc)
+       cat(paste0("Running BACON for subset: ", filename, "\n"))
 }
 
 

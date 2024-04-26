@@ -1,9 +1,10 @@
 # Script for running adding annotation data to ewas results
 # Import libraries
-library(argparse)
-library(dplyr)
-library(data.table)
-
+suppressPackageStartupMessages({
+    library(argparse)
+    library(dplyr)
+    library(data.table)
+})
 # Define command line arguments
 parser <- argparse::ArgumentParser(description="Script for adding annotation data to ewas results")
 parser$add_argument('--input-file', '-i',

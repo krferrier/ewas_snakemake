@@ -1,17 +1,19 @@
 # Script for performing Epigenome-Wide association analysis that takes in command line arguments
 
 # Import libraries
-library(R.utils)
-library(argparse)
-library(doFuture)
-library(progressr)
-library(progress)
-library(foreach)
-library(vars)
-library(dplyr)
-library(data.table)
-library(tibble)
-library(tictoc)
+suppressPackageStartupMessages({
+    library(R.utils)
+    library(argparse)
+    library(doFuture)
+    library(progressr)
+    library(progress)
+    library(foreach)
+    library(vars)
+    library(dplyr)
+    library(data.table)
+    library(tibble)
+    library(tictoc)
+})
 
 # Source functions from outside scripts
 source("scripts/fxns/chunk_fxns.R")

@@ -42,6 +42,8 @@ for group in GROUPS:
             o_prefix = f"{group}"
         output: 
             OUT_DIR + f"{group}/{group}_" + ASSOC + "_ewas_results" + OUT_TYPE
+        log:
+            f"log/{group}_ewas.log"
         conda:
             "../envs/ewas.yaml"
         shell:
@@ -56,7 +58,8 @@ for group in GROUPS:
             --workers {{params.n_workers}} \
             --out-dir {{params.o_dir}} \
             --out-type {{params.o_type}} \
-            --out-prefix {{params.o_prefix}}
+            --out-prefix {{params.o_prefix}} \
+            > {{log}} 2> {{log}}
             """
     rule:
         name:
