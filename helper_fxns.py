@@ -15,3 +15,4 @@ def generate_observed_combinations(df, stratify_cols):
     else:
         # If no stratify_cols provided, return a list with only "all"
         return ['all']
+

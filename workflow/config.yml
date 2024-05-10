@@ -1,9 +1,0 @@
-mvals: "data/mvals.csv.gz"
-pheno: "data/pheno.csv"
-association_variable: "BMI"
-stratify_variables: []
-chunk_size: 100
-processing_type: "multicore"
-workers: 2
-out_directory: "results/"
-out_type: ".csv"

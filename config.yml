@@ -1,0 +1,21 @@
+# Input data
+############################
+mvals: "data/mvals.csv.gz"
+pheno: "data/pheno.csv"
+
+# EWAS model parameters
+############################
+association_variable: "BMI" 
+stratified_ewas: "yes" # yes or no
+stratify_variables: ["sex"] # If yes, list which variable(s) to stratify on
+
+# Parallelization parameters
+############################
+chunk_size: 100 # number of methylation sites per chunk 
+processing_type: "multicore" # sequential, multisession, multicore, or cluster
+workers: 2 # Number of workers per job
+
+# Output parameters
+############################
+out_directory: "results/" # Include trailing '/'
+out_type: ".csv" # .csv or .csv.gz

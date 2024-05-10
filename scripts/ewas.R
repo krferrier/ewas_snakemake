@@ -2,22 +2,22 @@
 
 # Import libraries
 suppressPackageStartupMessages({
-  library(R.utils)
-  library(argparse)
-  library(doFuture)
-  library(progressr)
-  library(progress)
-  library(foreach)
-  library(vars)
-  library(dplyr)
-  library(data.table)
-  library(tibble)
-  library(tictoc)
+    library(R.utils)
+    library(argparse)
+    library(doFuture)
+    library(progressr)
+    library(progress)
+    library(foreach)
+    library(vars)
+    library(dplyr)
+    library(data.table)
+    library(tibble)
+    library(tictoc)
 })
 
 # Source functions from outside scripts
-source("scripts/chunk.R")
-source("scripts/stra")
+source("scripts/fxns/chunk_fxns.R")
+
 ################################################################################################################################
 #                                   DEFINE AND PARSE COMMAND LINE ARGUMENTS                                                    # 
 ################################################################################################################################
@@ -94,29 +94,16 @@ out_dir <- args$out_dir
 out_type <- args$out_type
 out_prefix <- args$out_prefix
 
-
-pheno <- "data/pheno.csv"
-mvals <- "data/mvals.csv.gz"
-assoc_var <- "BMI"
-stratified <- "no"
-chunk_size <- 100
-pt <- "multisession"
-n_workers <- 2
-out_dir <- "results/"
-out_type <- ".csv"
-out_prefix <- "all"
-
 ####################################################################################################
 #                                   READ IN DATA                                                   #
 ####################################################################################################
 
 # Read in phenotype data
 pheno <- fread(pheno) %>% 
-  column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
-
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 # Read in methylation data
 mvals <- fread(mvals) %>% 
-  column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 
 
 ####################################################################################################
@@ -126,10 +113,10 @@ mvals <- fread(mvals) %>%
 # Check that the association variable exists in the phenotype data
 missing_vars <- setdiff(assoc_var, colnames(pheno))
 if (length(missing_vars) > 0) {
-  stop(paste("The following association variable(s) do not exist in the phenotype data:", paste(missing_vars, collapse = ", ")))
-  # If the variable does exist in the phenotype data, set the variable as the first column
+    stop(paste("The following association variable(s) do not exist in the phenotype data:", paste(missing_vars, collapse = ", ")))
+    # If the variable does exist in the phenotype data, set the variable as the first column
 }else{
-  pheno <- pheno %>% relocate(all_of(assoc_var))
+    pheno <- pheno %>% relocate(all_of(assoc_var))
 }
 
 
@@ -150,11 +137,11 @@ mvals <- chunk.df(mvals, cpgs)
 registerDoFuture()
 n.workers = n_workers
 if(pt=="sequential"){
-  plan(strategy = pt)
-  cat("Processing run sequentially. \n")
+    plan(strategy = pt)
+    cat("Processing run sequentially. \n")
 }else{
-  plan(strategy = pt, workers = n.workers)
-  cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
+    plan(strategy = pt, workers = n.workers)
+    cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
 }
 
 # Start timer 
@@ -165,28 +152,24 @@ p <- progress::progress_bar$new(format = "[:bar] :percent ELAPSED::elapsed, ETA:
 # Create a list for results
 results <- list()
 # Loop through chunks
-foreach(ii = 1:length(cpgs), .packages = c("vars"), .verbose = T) %dopar% {
-  .GlobalEnv$mvals <- mvals
-  .GlobalEnv$pheno <- pheno
-  .GlobalEnv$results <- results
-  m.chunk <- mvals[[ii]]
-  # Run linear regression
-  ewas <- foreach(i = cpgs[[ii]], .packages = c("vars"), .verbose = F, .combine = 'cbind') %do% {
-    .GlobalEnv$m.chunk <- m.chunk
-    .GlobalEnv$pheno <- pheno
-    .GlobalEnv$results <- results
-    model.base <- paste(colnames(pheno), collapse = " + ")
-    string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
-    fit <- lm(formula = string.formula, data = pheno) %>%
-      broom::tidy(conf.int = T) %>%
-      dplyr::filter(term %in% c(assoc_var)) %>%
-      dplyr::mutate(cpgid = i)
-    fit
-  }
-  p$tick()
-  ewas
-  #results[[ii]] <- ewas
-}
+for(ii in 1:length(cpgs)){
+    m.chunk <- mvals[[ii]]
+    # Run linear regression
+    ewas <- foreach(i = cpgs[[ii]], .packages = c("vars"), .verbose = F) %dopar% {
+            .GlobalEnv$m.chunk <- m.chunk
+            .GlobalEnv$pheno <- pheno
+            model.base <- paste(colnames(pheno), collapse = " + ")
+            string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
+            fit <- lm(formula = string.formula, data = pheno) %>%
+            broom::tidy(conf.int = T) %>%
+            dplyr::filter(term %in% c(assoc_var)) %>%
+            dplyr::mutate(cpgid = i)
+            fit
+            }
+    ewas <- rbindlist(ewas)
+    results[[ii]] <- ewas
+    p$tick()
+    }
 results <- rbindlist(results)
 toc()
 
@@ -194,9 +177,9 @@ toc()
 # Export results 
 results$n <- nrow(pheno)
 if (stratified == "yes"){
-  filename <- paste0(out_dir, out_prefix, "_", assoc_var, "_ewas_results", out_type)
+    filename <- paste0(out_dir, out_prefix, "_", assoc_var, "_ewas_results", out_type)
 } else{
-  filename <- paste0(out_dir, assoc_var, "_ewas_results", out_type)
+    filename <- paste0(out_dir, assoc_var, "_ewas_results", out_type)
 }
 print(filename)
 fwrite(results, file = filename)

@@ -1,4 +1,11 @@
 .Rproj.user
 .Rhistory
 .RData
-.Ruserdata
+.Ruserdata\
+ewas_snakemake.Rproj
+results/
+.vscode/
+__pycache__/
+.snakemake
+annotation_files/
+
