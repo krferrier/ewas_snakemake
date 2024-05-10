@@ -151,7 +151,6 @@ cat("Starting EWAS: ", out_prefix, "\n")
 tic()
 # Create progress bar
 handlers(global = TRUE)
-handlers(global = TRUE)
 if (interactive() == TRUE) {
   handlers(list(
     handler_progress(format = "[:bar] :percent ELAPSED::elapsed, ETA::eta")
