@@ -8,4 +8,5 @@ results/
 __pycache__/
 .snakemake
 annotation_files/
+log/
 
