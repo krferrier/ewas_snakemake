@@ -13,6 +13,7 @@ suppressPackageStartupMessages({
     library(data.table)
     library(tibble)
     library(tictoc)
+    library(cli)
 })
 
 # Source functions from outside scripts
@@ -144,35 +145,46 @@ if(pt=="sequential"){
     cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
 }
 
+cat("Starting EWAS: ", out_prefix, "\n")
+
 # Start timer 
 tic()
 # Create progress bar
-p <- progress::progress_bar$new(format = "[:bar] :percent ELAPSED::elapsed, ETA::eta",
-                                total = length(cpgs))
-# Create a list for results
-results <- list()
-# Loop through chunks
-for(ii in 1:length(cpgs)){
-    m.chunk <- mvals[[ii]]
-    # Run linear regression
-    ewas <- foreach(i = cpgs[[ii]], .packages = c("vars"), .verbose = F) %dopar% {
-            .GlobalEnv$m.chunk <- m.chunk
-            .GlobalEnv$pheno <- pheno
-            model.base <- paste(colnames(pheno), collapse = " + ")
-            string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
-            fit <- lm(formula = string.formula, data = pheno) %>%
-            broom::tidy(conf.int = T) %>%
-            dplyr::filter(term %in% c(assoc_var)) %>%
-            dplyr::mutate(cpgid = i)
-            fit
-            }
-    ewas <- rbindlist(ewas)
-    results[[ii]] <- ewas
-    p$tick()
-    }
-results <- rbindlist(results)
-toc()
+handlers(global = TRUE)
+handlers(global = TRUE)
+if (interactive() == TRUE) {
+  handlers(list(
+    handler_progress(format = "[:bar] :percent ELAPSED::elapsed, ETA::eta")
+  ))
+} else {
+  handlers("cli")
+  options(cli.progress_handlers = "progressr")
+}
 
+ewas <- function(mvals, pheno){
+  tic()
+  p <- progressor(along = 1:length(mvals))
+  # Loop through chunks
+  results <- foreach(ii = 1:length(mvals), .verbose = F, .combine = "rbind", .packages = c("vars"), .inorder = T) %dopar% {
+    m.chunk <- mvals[[ii]]    
+    p()
+    # Loop through cpgs in a chunk
+    foreach(i = colnames(m.chunk), .verbose = F, .combine= "rbind", .packages = c("vars"), .inorder = F) %dopar% {
+      .GlobalEnv$m.chunk <- m.chunk
+      model.base <- paste(colnames(pheno), collapse = " + ")
+      string.formula <- paste0("m.chunk$", i, " ~ ", model.base)
+      fit <- lm(formula = string.formula, data = pheno) %>%
+        broom::tidy(conf.int = F) %>%
+        dplyr::filter(term %in% c(assoc_var)) %>%
+        dplyr::mutate(cpgid = i)
+      fit
+    }
+  }
+  toc()
+  return(results)
+}
+
+results <- ewas(mvals, pheno)
 
 # Export results 
 results$n <- nrow(pheno)
@@ -181,5 +193,6 @@ if (stratified == "yes"){
 } else{
     filename <- paste0(out_dir, assoc_var, "_ewas_results", out_type)
 }
-print(filename)
+
 fwrite(results, file = filename)
+

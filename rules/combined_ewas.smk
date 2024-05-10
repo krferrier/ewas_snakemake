@@ -17,6 +17,7 @@ rule run_combined_ewas:
         "../envs/ewas.yaml"
     shell:
         f"""
+        export R_PROGRESSR_ENABLE=TRUE 
         Rscript {{input.script}} \
         --pheno {{input.pheno_file}} \
         --methyl {{input.methyl_file}} \
