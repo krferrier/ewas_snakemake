@@ -60,7 +60,7 @@ for group in GROUPS:
             --out-dir {{params.o_dir}} \
             --out-type {{params.o_type}} \
             --out-prefix {{params.o_prefix}} \
-            > {{log}}
+            > {{log}} 2>&1
             """
     rule:
         name:
