@@ -25,7 +25,7 @@ In you are performing a stratified analysis, you can have each strata processed 
 
 ## Run EWAS
 
-Once you have modified the `.config` file to match your projects specifications and computational resources you are ready to run the EWAS. 
+Once you have modified the `config.yml` file to match your projects specifications and computational resources you are ready to run the EWAS. 
 
 For a standard (non-stratified) EWAS:
 ```shell
