@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
     library(vars)
     library(dplyr)
     library(data.table)
+    library(fst)
     library(tibble)
     library(tictoc)
     library(cli)
@@ -95,17 +96,29 @@ out_dir <- args$out_dir
 out_type <- args$out_type
 out_prefix <- args$out_prefix
 
+# Set number of threads to use if using fst to read/write data
+threads_fst(nr_of_threads = n_workers)
+
 ####################################################################################################
 #                                   READ IN DATA                                                   #
 ####################################################################################################
-
-# Read in phenotype data
-pheno <- fread(pheno) %>% 
+# Read in the phenotype data
+if(endsWith(pheno, '.fst')){
+  pheno <- read_fst(pheno)  %>% 
     column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+} else {
+  pheno <- fread(pheno) %>% 
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+}
+
 # Read in methylation data
-mvals <- fread(mvals) %>% 
+if(endsWith(mvals, '.fst')){
+  mvals <- read_fst(mvals)  %>% 
     column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
-
+} else {
+  mvals <- fread(mvals) %>% 
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+}
 
 ####################################################################################################
 #                                     CHECK DATA                                                   #

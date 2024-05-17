@@ -6,10 +6,10 @@ rule stratify_data:
     params:
         strat_vars = ' '.join(STRAT_VARS),
         o_dir = OUT_DIR,
-        o_type = OUT_TYPE
+        n_threads = N_WORKERS
     output: 
-        temp(expand(OUT_DIR + "{group}/{group}_pheno" + OUT_TYPE, group = GROUPS)),
-        temp(expand(OUT_DIR + "{group}/{group}_mvals" + OUT_TYPE, group = GROUPS))
+        temp(expand(OUT_DIR + "{group}/{group}_pheno.fst", group = GROUPS)),
+        temp(expand(OUT_DIR + "{group}/{group}_mvals.fst", group = GROUPS))
     conda:
         "../envs/ewas.yaml"    
     shell:
@@ -19,7 +19,7 @@ rule stratify_data:
         --methyl {{input.methyl_file}} \
         --stratify {{params.strat_vars}} \
         --out-dir {{params.o_dir}} \
-        --out-type {{params.o_type}}
+        --threads {{params.n_threads}}
         """
 
 
@@ -29,8 +29,8 @@ for group in GROUPS:
             f"run_ewas_{group}"
         input:
             script = "scripts/ewas.R",
-            pheno_file = OUT_DIR + f"{group}/{group}_pheno" + OUT_TYPE,
-            methyl_file= OUT_DIR + f"{group}/{group}_mvals" + OUT_TYPE
+            pheno_file = OUT_DIR + f"{group}/{group}_pheno.fst",
+            methyl_file= OUT_DIR + f"{group}/{group}_mvals.fst"
         params:
             assoc_var = ASSOC,
             stratified = STRATIFIED,

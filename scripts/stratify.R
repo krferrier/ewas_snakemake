@@ -3,12 +3,14 @@
 suppressPackageStartupMessages({
   library(argparse)
   library(data.table)
+  library(fst)
   library(dplyr)
   library(tibble)
 })
 
 # Import functions for stratifying data
 source("scripts/fxns/stratify_fxns.R")
+
 
 ################################################################################################################################
 #                                   DEFINE AND PARSE COMMAND LINE ARGUMENTS                                                    # 
@@ -34,14 +36,13 @@ parser$add_argument('--out-dir',
                     nargs="?",                    
                     const="~/", 
                     default="~/",  
-                    help="Path to output directory")
-parser$add_argument('--out-type', 
-                    type="character",
-                    choices=c(".csv", ".csv.gz"), 
+                    help="Path to output directory")    
+parser$add_argument('--threads', 
+                    type="integer",
                     nargs="?",                    
-                    const=".csv",
-                    default=".csv",  
-                    help="Output file type: CSV or CSV.GZ")                    
+                    const=1,
+                    default=1,  
+                    help="Output file type: CSV or CSV.GZ")                
 
 # parse arguments
 args <- parser$parse_args()
@@ -49,18 +50,31 @@ pheno <- args$pheno
 mvals <- args$methyl
 stratify_vars <- args$stratify
 out_dir <- args$out_dir
-out_type <- args$out_type
+n_threads <- args$threads
+
+# Set number of threads to use if using fst to read/write data
+threads_fst(nr_of_threads = n_threads)
 
 ####################################################################################################
 #                                   READ IN DATA                                                   #
 ####################################################################################################
+# Read in the phenotype data
+if(endsWith(pheno, '.fst')){
+  pheno <- read_fst(pheno)  %>% 
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+} else {
+  pheno <- fread(pheno) %>% 
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+}
 
-# Read in phenotype data
-pheno <- fread(pheno) %>% 
-  column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
 # Read in methylation data
-mvals <- fread(mvals) %>% 
-column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+if(endsWith(mvals, '.fst')){
+  mvals <- read_fst(mvals)  %>% 
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+} else {
+  mvals <- fread(mvals) %>% 
+    column_to_rownames(var=colnames(.)[1]) # Move the sample IDs to the rownames
+}
 
 
 ####################################################################################################
@@ -81,11 +95,15 @@ mvals <- stratify.mvals(mvals)
 ####################################################################################################
 for (i in names(subset.key)){
   p.sub <- pheno[[i]]
-  filename <- paste0(out_dir, i, "/", i, "_pheno", out_type)
-  fwrite(p.sub, file = filename, row.names=T)
+  p.sub <- p.sub %>%
+    rownames_to_column(var="SampleID") # Move the sample IDs to the rownames
+  filename <- paste0(out_dir, i, "/", i, "_pheno.fst")
+  write_fst(p.sub, path = filename)
 }
 for (i in names(subset.key)){
   m.sub <- mvals[[i]]
-  filename <- paste0(out_dir, i, "/", i, "_mvals", out_type)
-  fwrite(m.sub, file = filename, row.names=T) 
+  m.sub <- m.sub %>%
+    rownames_to_column(var="SampleID")
+  filename <- paste0(out_dir, i, "/", i, "_mvals.fst")
+  write_fst(m.sub, path = filename) 
 }

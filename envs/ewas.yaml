@@ -226,6 +226,8 @@ dependencies:
 - r-foreign=0.8_86=r43h57805ef_0
 - r-formatr=1.14=r43hc72bb7e_1
 - r-fs=1.6.3=r43ha503ecb_0
+- r-fst=0.9.8=r43ha503ecb_2
+- r-fstcore=0.9.14=r43h884c59f_0
 - r-futile.logger=1.4.3=r43h6115d3f_0
 - r-futile.options=1.0.1=r43h142f84f_0
 - r-future=1.33.2=r43h785f33e_0
