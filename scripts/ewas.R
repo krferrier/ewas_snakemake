@@ -155,6 +155,7 @@ if(pt=="sequential"){
     cat("Processing run sequentially. \n")
 }else{
     plan(strategy = pt, workers = n.workers)
+    options(future.globals.maxSize= +Inf)
     cat("Asynchronous parallel processing using", pt, "with", n.workers, "worker(s). \n")
 }
 
