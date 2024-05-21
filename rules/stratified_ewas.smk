@@ -106,4 +106,4 @@ rule run_metal:
     singularity:
         "library://krferrier/metal/meta_analysis:metal"
     shell: 
-        f"metal SOURCE {{input.script}}"
+        f"metal {{input.script}}"
